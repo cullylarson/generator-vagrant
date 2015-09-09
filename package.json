@@ -1,0 +1,21 @@
+{
+  "name": "generator-vagrant",
+  "version": "0.0.1",
+  "description": "",
+  "author": {
+    "name": "Cully Larson",
+    "email": "cully.larson@gmail.com"
+  },
+  "files": [
+    "app"
+  ],
+  "keywords": [
+    "yeoman-generator"
+  ],
+  "dependencies": {
+    "chalk": "^1.1.1",
+    "extend": "^3.0.0",
+    "yeoman-generator": "^0.20.2",
+    "yosay": "^1.0.5"
+  }
+}
