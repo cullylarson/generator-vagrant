@@ -23,7 +23,13 @@ apt-get install -y <%= params.aptPackages %>
 <% if(params.shouldSetupMysql && params.shouldCreateMysqlDatabase) { %>
 # create mysql database
 echo "\n--- Creating MySQL Database\n"
-mysql -u root -p<%= params.mysqlRootPassword %> -e "CREATE DATABASE <%= params.mysqlName %>; GRANT ALL PRIVILEGES ON <%= params.mysqlName %>.* TO <%= params.mysqlUser %> IDENTIFIED BY '<%= params.mysqlPass %>'"
+mysql -u root -p<%= params.mysqlRootPassword %> -e "CREATE DATABASE <%= params.mysqlName %>; GRANT ALL PRIVILEGES ON <%= params.mysqlName %>.* TO <%= params.mysqlUser %> IDENTIFIED BY '<%= params.mysqlPass %>'; FLUSH PRIVILEGES;"
+<% } %>
+
+<% if(params.importMysqlDataPath) { %>
+# import data into the database
+echo "\n--- Importing data into database\n"
+mysql -u '<%= params.mysqlUser %>' -p'<%= params.mysqlPass %>' '<%= params.mysqlName %>' < '/vagrant/<%= params.importMysqlDataPath %>'
 <% } %>
 
 # setup webroot
@@ -36,16 +42,16 @@ fi
 
 # update default apache site config
 echo "\n--- Re-writing Apache Default Site Config\n"
-mv /etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf.dist
-echo '<VirtualHost *>'                                      > /etc/apache2/sites-enabled/000-default.conf
-echo '    ServerAdmin webmaster@localhost'                 >> /etc/apache2/sites-enabled/000-default.conf
-echo '    DocumentRoot /var/www/html'                      >> /etc/apache2/sites-enabled/000-default.conf
-echo '    ErrorLog ${APACHE_LOG_DIR}/error.log'            >> /etc/apache2/sites-enabled/000-default.conf
-echo '    CustomLog ${APACHE_LOG_DIR}/access.log combined' >> /etc/apache2/sites-enabled/000-default.conf
-echo '    <Directory "/var/www/html">'                     >> /etc/apache2/sites-enabled/000-default.conf
-echo '        AllowOverride All'                           >> /etc/apache2/sites-enabled/000-default.conf
-echo '    </Directory>'                                    >> /etc/apache2/sites-enabled/000-default.conf
-echo '</VirtualHost>'                                      >> /etc/apache2/sites-enabled/000-default.conf
+mv /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.dist
+echo '<VirtualHost *>'                                      > /etc/apache2/sites-available/000-default.conf
+echo '    ServerAdmin webmaster@localhost'                 >> /etc/apache2/sites-available/000-default.conf
+echo '    DocumentRoot /var/www/html'                      >> /etc/apache2/sites-available/000-default.conf
+echo '    ErrorLog ${APACHE_LOG_DIR}/error.log'            >> /etc/apache2/sites-available/000-default.conf
+echo '    CustomLog ${APACHE_LOG_DIR}/access.log combined' >> /etc/apache2/sites-available/000-default.conf
+echo '    <Directory "/var/www/html">'                     >> /etc/apache2/sites-available/000-default.conf
+echo '        AllowOverride All'                           >> /etc/apache2/sites-available/000-default.conf
+echo '    </Directory>'                                    >> /etc/apache2/sites-available/000-default.conf
+echo '</VirtualHost>'                                      >> /etc/apache2/sites-available/000-default.conf
 
 # allow mod rewrite
 echo "\n--- Allow Mod_Rewrite\n"

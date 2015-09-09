@@ -17,6 +17,7 @@ module.exports = yo.generators.Base.extend({
         shouldSetupMysql: true,
         mysqlRootPassword: "root",
         shouldCreateMysqlDatabase: true,
+        importMysqlDataPath: "",
         mysqlName: "dev",
         mysqlUser: "dev",
         mysqlPass: "dev",
@@ -144,6 +145,15 @@ module.exports = yo.generators.Base.extend({
                             name: "mysqlPass",
                             message: "MySql database password",
                             default: self.params.mysqlPass,
+                            when: function(answers) {
+                                return answers.shouldCreateMysqlDatabase;
+                            }
+                        },
+                        {
+                            type: "input",
+                            name: "importMysqlDataPath",
+                            message: "Import an .sql file into the database?",
+                            default: self.params.importMysqlDataPath,
                             when: function(answers) {
                                 return answers.shouldCreateMysqlDatabase;
                             }
