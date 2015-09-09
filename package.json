@@ -1,7 +1,8 @@
 {
   "name": "generator-vagrant",
   "version": "0.0.1",
-  "description": "",
+  "description": "Simple yeoman generator that creates a Vagrantfile and a shell provision script.",
+  "repository": "https://github.com/cullylarson/generator-vagrant.git",
   "author": {
     "name": "Cully Larson",
     "email": "cully.larson@gmail.com"
