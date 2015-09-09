@@ -8,12 +8,12 @@ var extend = require('extend');
 module.exports = yo.generators.Base.extend({
     params: {
         shouldDoEverything: false,
-        shouldCreateVagrantfile: true,
         vagrantfilePath: "./Vagrantfile",
         shouldCreateProvisionScript: true,
+        provisionScriptPath: "./vagrant-provision.sh",
         vagrantBox: "ubuntu/trusty64",
         aptPackages: "apache2 mysql-client mysql-server php5 php5-mysql php5-cli php5-curl php5-gd libssh2-php npm nodejs-legacy nodejs git sendmail silversearcher-ag php5-xdebug",
-        timezone: "UTC",
+        timezone: "Etc/UTC",
         shouldSetupMysql: true,
         mysqlRootPassword: "root",
         shouldCreateMysqlDatabase: true,
@@ -50,28 +50,16 @@ module.exports = yo.generators.Base.extend({
 
                 var initialQuestions = [
                     {
-                        type: "confirm",
-                        name: "shouldCreateVagrantfile",
-                        message: "Create a Vagrantfile?",
-                        default: self.params.shouldCreateVagrantfile
-                    },
-                    {
                         type: "input",
                         name: "vagrantfilePath",
                         message: "Where should we put the Vagrantfile?",
                         default: self.params.vagrantfilePath,
-                        when: function(answers) {
-                            return answers.shouldCreateVagrantfile;
-                        }
                     },
                     {
                         type: "input",
                         name: "vagrantBox",
                         message: "What box do you want to use?",
                         default: self.params.vagrantBox,
-                        when: function(answers) {
-                            return answers.shouldCreateVagrantfile;
-                        }
                     },
                     {
                         type: "confirm",
@@ -91,6 +79,12 @@ module.exports = yo.generators.Base.extend({
                     }
 
                     var scriptQuestions = [
+                        {
+                            type: "input",
+                            name: "provisionScriptPath",
+                            message: "Where should the provision script go?",
+                            default: self.params.provisionScriptPath
+                        },
                         {
                             type: "input",
                             name: "timezone",
@@ -202,5 +196,28 @@ module.exports = yo.generators.Base.extend({
     },
 
     configuring: {
+        app: function () {
+            var self = this;
+
+            this.fs.copyTpl(
+                this.templatePath('_Vagrantfile'),
+                this.destinationPath(self.params.vagrantfilePath),
+                {
+                    vagrantBox: self.params.vagrantBox,
+                    shouldCreateProvisionScript: self.params.shouldCreateProvisionScript,
+                    provisionScriptPath: self.params.provisionScriptPath
+                }
+            );
+
+            if(self.params.shouldCreateProvisionScript) {
+                this.fs.copyTpl(
+                    this.templatePath('_provision'),
+                    this.destinationPath(self.params.provisionScriptPath),
+                    {
+                        params: self.params
+                    }
+                );
+            }
+        }
     }
 });

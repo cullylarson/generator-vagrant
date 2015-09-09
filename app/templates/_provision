@@ -1,0 +1,100 @@
+#!/bin/sh
+
+# set timezone
+echo "\n--- Set timezone to <%= params.timezone %>\n"
+echo "<%= params.timezone %>" | tee /etc/timezone && dpkg-reconfigure --frontend noninteractive tzdata
+
+echo "\n--- Apt Update\n"
+apt-get update
+
+<% if(params.shouldSetupMysql) { %>
+# setup mysql package
+echo "\n--- Pre-Configuring MySQL\n"
+echo "mysql-server mysql-server/root_password password '<%= params.mysqlRootPassword %>'" | debconf-set-selections
+echo "mysql-server mysql-server/root_password_again password '<%= params.mysqlRootPassword %>'" | debconf-set-selections
+<% } %>
+
+<% if(params.aptPackages) { %>
+# install packages
+echo "\n--- Installing Packages\n"
+apt-get install -y <%= params.aptPackages %>
+<% } %>
+
+<% if(params.shouldSetupMysql && params.shouldCreateMysqlDatabase) { %>
+# create mysql database
+echo "\n--- Creating MySQL Database\n"
+mysql -u root -proot -e "CREATE DATABASE <%= params.mysqlName %>; GRANT ALL PRIVILEGES ON <%= params.mysqlName %>.* TO <%= params.mysqlUser %> IDENTIFIED BY '<%= params.mysqlPass %>'"
+<% } %>
+
+# setup webroot
+echo "\n--- Setting Up Webroot\n"
+if ! [ -L /var/www  ]; then
+  rm -rf /var/www
+  mkdir -p /var/www
+  ln -fs '<%= params.webRoot %>' /var/www/html
+fi
+
+# update default apache site config
+echo "\n--- Re-writing Apache Default Site Config\n"
+mv /etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-default.conf.dist
+echo '<VirtualHost *>'                                      > /etc/apache2/sites-enabled/000-default.conf
+echo '    ServerAdmin webmaster@localhost'                 >> /etc/apache2/sites-enabled/000-default.conf
+echo '    DocumentRoot /var/www/html'                      >> /etc/apache2/sites-enabled/000-default.conf
+echo '    ErrorLog ${APACHE_LOG_DIR}/error.log'            >> /etc/apache2/sites-enabled/000-default.conf
+echo '    CustomLog ${APACHE_LOG_DIR}/access.log combined' >> /etc/apache2/sites-enabled/000-default.conf
+echo '    <Directory "/var/www/html">'                     >> /etc/apache2/sites-enabled/000-default.conf
+echo '        AllowOverride All'                           >> /etc/apache2/sites-enabled/000-default.conf
+echo '    </Directory>'                                    >> /etc/apache2/sites-enabled/000-default.conf
+echo '</VirtualHost>'                                      >> /etc/apache2/sites-enabled/000-default.conf
+
+# allow mod rewrite
+echo "\n--- Allow Mod_Rewrite\n"
+a2enmod rewrite
+
+# update php.ini
+echo "\n--- Adding custom PHP settings\n"
+echo 'max_execution_time = 120'   > /etc/php5/mods-available/custom.ini
+echo 'max_input_time = 200'      >> /etc/php5/mods-available/custom.ini
+echo 'upload_max_filesize = 40M' >> /etc/php5/mods-available/custom.ini
+echo 'post_max_size = 40M'       >> /etc/php5/mods-available/custom.ini
+php5enmod -s apache2 custom/99
+
+<% if(params.shouldRunApacheAsVagrant) { %>
+# make apache run as vagrant user
+echo "\n--- Make apache run as vagrant user\n"
+sed -i 's/APACHE_RUN_USER=www-data/APACHE_RUN_USER=vagrant/' /etc/apache2/envvars
+chown -R vagrant:www-data /var/lock/apache2 # need to upload lock file permissions
+<% } %>
+
+# restart apache
+echo "\n--- Restarting Apache\n"
+service apache2 restart
+
+<% if(params.shouldGenerateSshKeys) { %>
+# SSH keys
+echo "\n--- Generate SSH key\n"
+ssh-keygen -f $HOME/.ssh/id_rsa -t rsa -N ''
+echo "\n--- Add SSH key to agent\n"
+eval `ssh-agent -s` && ssh-add
+<% } %>
+
+<% if(params.shouldInstallComposer) { %>
+# install composer
+echo "\n--- Installing Composer\n"
+curl -sS https://getcomposer.org/installer | php
+mv composer.phar /usr/local/bin/composer
+<% } %>
+
+<% if(params.npmGlobalPackages) { %>
+# install gulp and bower
+echo "\n--- Install npm Packages\n"
+npm install --global <%= params.npmGlobalPackages %>
+<% } %>
+
+<% if(params.shouldInstallWpCli) { %>
+# install wp-cli
+echo -e "\n--- Installing Wordpress CLI\n"
+curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+chmod +x wp-cli.phar
+sudo mv wp-cli.phar /usr/local/bin/wp
+<% } %>
